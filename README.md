@@ -1,29 +1,43 @@
 # Eric 的 Fontconfig 配置
 
-面向 Linux 中文桌面的个人字体配置。默认英文用 Inter，中文黑体用更纱，宋体用 Noto Serif；生僻字按黑体、宋体分别回退到遍黑体和字雲。
+一套开箱即用的 Linux 个人字体配置方案。主要解决 Linux 桌面常见的西文与中文风格割裂、生僻字豆腐块、以及部分中文字体算法假粗体发虚发胖的问题。
+
+### 核心特性
+- **清晰现代的界面西文**：默认无衬线西文优先匹配 **Inter**。
+- **干脆利落的中文黑体**：中文无衬线与等宽优先匹配 **更纱黑体 (Sarasa Gothic / Term)**。
+- **生僻字全覆盖兜底**：黑体回退至 **遍黑体 (Plangothic)**，宋体回退至 **字雲 (Jigmo)**，彻底告别豆腐块。
+- **拯救文楷粗体**：请求 `LXGW WenKai GB` 的粗体时，自动平替为 **`LXGW ZhenKai GB` (霞鹜臻楷 Regular)**，告别算法描边糊成一团的“假粗体”。
+- **基础渲染调优**：开启抗锯齿，关闭 Hinting，设定 RGB 子像素渲染；全局屏蔽丑陋的 Nimbus Sans。
 
 配置文件：[fonts.conf](fonts.conf) · [直接下载](https://raw.githubusercontent.com/ZHAO20060708/fontconfig/main/fonts.conf)
 
-## 默认字体与规则
+---
 
-| 场景 | 字体优先顺序 |
-| --- | --- |
-| 无衬线 / `system-ui` | Inter → Sarasa Gothic SC → Noto Sans CJK → Plangothic → Jigmo → Noto Color Emoji |
-| 衬线 | Noto Serif → Noto Serif CJK → Jigmo → Plangothic → Noto Color Emoji |
-| 等宽 | Sarasa Term SC → Sarasa Term TC / J → Plangothic → Jigmo → Noto Color Emoji |
-| `LXGW WenKai GB` 的粗体请求 | 改用 `LXGW ZhenKai GB`，字重重置为 Regular |
+## 字体回退逻辑
 
-- 简体中文字体优先。这套顺序也会影响其他 CJK 语言请求。
-- Arial、Liberation Sans、微软雅黑、Segoe UI、PingFang SC 映射到 `sans-serif`；宋体映射到 `serif`；Liberation Mono 映射到 `monospace`。
-- 通用字体回退使用 `binding="strong"`，避免更纱被 Fontconfig 的字体分类匹配挤到后面。具体字体名排在通用字体名前时，仍保留优先级。
-- 启用抗锯齿，关闭 hinting，子像素顺序设为 RGB。显示器若使用其他子像素排列，请自行修改 `rgba`。
-- 全局排除 Nimbus Sans，保留原配置针对 GitHub 的处理。
+| 场景 | 字体匹配顺序 |
+| :--- | :--- |
+| **无衬线 / `system-ui`** | Inter → 更纱黑体 SC → Noto Sans CJK → 遍黑体 → 字雲 → Noto Color Emoji |
+| **衬线 (Serif)** | Noto Serif → Noto Serif CJK → 字雲 → 遍黑体 → Noto Color Emoji |
+| **等宽 (Monospace)** | 更纱等宽 SC → 更纱等宽 TC / J → 遍黑体 → 字雲 → Noto Color Emoji |
+| **霞鹜文楷粗体** | 命中请求后自动重定向至 **霞鹜臻楷 GB Regular** |
 
-## Arch Linux：一条命令安装字体
+> **实现细节**：
+> 1. 通用回退规则声明了 `binding="strong"`，防止更纱黑体被系统自带的全局优先级规则挤到后排。
+> 2. 常见系统字体别名（Arial、Segoe UI、微软雅黑、PingFang SC 等）直接重定向至上述体系；宋体映射至 `serif`；Liberation Mono 映射至 `monospace`。
+> 3. 渲染配置默认使用 RGB 排列；若你的显示器是 BGR 排列，修改 `fonts.conf` 中的 `rgba` 即可。
 
-前提：已经安装 `yay`、`pkexec`（来自 `polkit`），并在有 Polkit 认证代理的桌面会话中运行。使用普通用户执行；`--sudo pkexec` 指定图形认证，`--sudoloop=false` 关闭后台认证循环。命令会保留正常的安装和 AUR 构建确认。
+---
 
-普通 Arch 不需要额外添加 archlinuxcn。下面用 `yay` 安装仓库和 AUR 字体，再从臻楷官方发布页下载 GB 字体，最后刷新缓存：
+## 安装指引
+
+### 方案 A：Arch Linux（推荐，一条命令安装）
+
+普通用户身份直接执行（脚本会自动调用 `pkexec` 进行图形提权）。
+
+#### 1. 安装字体
+
+**默认仓库 + AUR（自动从 GitHub 获取臻楷）：**
 
 ```bash
 yay --sudo pkexec --sudoflags '' --sudoloop=false -S --needed \
@@ -43,7 +57,7 @@ yay --sudo pkexec --sudoflags '' --sudoloop=false -S --needed \
 )
 ```
 
-如果已配置 **archlinuxcn**，可以全部交给 `yay`：
+**如果你已启用 `archlinuxcn`（全部走包管理）：**
 
 ```bash
 yay --sudo pkexec --sudoflags '' --sudoloop=false -S --needed \
@@ -52,53 +66,11 @@ yay --sudo pkexec --sudoflags '' --sudoloop=false -S --needed \
   ttf-plangothic ttf-jigmo ttf-lxgw-wenkai-gb ttf-lxgw-zhenkai && fc-cache -f
 ```
 
-以上命令安装字体；下面的步骤安装本仓库配置。
+*(文楷与臻楷仅供粗体替换规则使用，不需要该规则可自行从包列表中去掉)*
 
-### 包名与来源
+#### 2. 部署配置
 
-包名和来源核对日期：2026-10-02。
-
-| 包名 | 来源 | 用途 |
-| --- | --- | --- |
-| [`inter-font`](https://archlinux.org/packages/extra/any/inter-font/) | Arch Extra | 英文界面字体 |
-| [`ttf-sarasa-gothic`](https://archlinux.org/packages/extra/any/ttf-sarasa-gothic/) | Arch Extra | 更纱 Gothic、Term 及多地区字体 |
-| [`noto-fonts`](https://archlinux.org/packages/extra/any/noto-fonts/) | Arch Extra | Noto Serif 与其他文字回退 |
-| [`noto-fonts-cjk`](https://archlinux.org/packages/extra/any/noto-fonts-cjk/) | Arch Extra | Noto Sans / Serif CJK 多地区字体 |
-| [`noto-fonts-emoji`](https://archlinux.org/packages/extra/any/noto-fonts-emoji/) | Arch Extra | Noto Color Emoji |
-| [`ttf-jigmo`](https://archlinux.org/packages/extra/any/ttf-jigmo/) | Arch Extra | Jigmo、Jigmo2、Jigmo3 |
-| [`ttf-plangothic`](https://aur.archlinux.org/packages/ttf-plangothic) | AUR；archlinuxcn 也提供 | 遍黑体 P1、P2 |
-| [`ttf-lxgw-wenkai-gb`](https://aur.archlinux.org/packages/ttf-lxgw-wenkai-gb) | AUR | 霞鹜文楷 GB |
-| [`ttf-lxgw-zhenkai`](https://github.com/archlinuxcn/repo/tree/master/archlinuxcn/ttf-lxgw-zhenkai) | archlinuxcn；本次核对时 AUR 无此包 | 霞鹜臻楷 GB |
-
-文楷和臻楷只用于文楷粗体替换规则，不是默认桌面字体；不使用文楷时可以跳过这两项。
-
-## 手动下载字体
-
-下载已经构建好的 `.ttf`、`.otf`、`.ttc`，不要把 GitHub 的源码压缩包当成字体安装包。
-
-| 项目 | 项目网址 | 下载入口 | 需要的字体 / 下载说明 |
-| --- | --- | --- | --- |
-| Inter | [rsms/inter](https://github.com/rsms/inter) | [Releases](https://github.com/rsms/inter/releases) | 下载 Inter 字体压缩包，安装桌面字体；配置匹配 `Inter` |
-| 更纱黑体 | [be5invis/Sarasa-Gothic](https://github.com/be5invis/Sarasa-Gothic) | [Releases](https://github.com/be5invis/Sarasa-Gothic/releases) | 推荐完整 TTC 包；至少包括 Gothic SC、Term SC；完整保留回退还需 Term TC、Term J |
-| Noto Serif | [notofonts/latin-greek-cyrillic](https://github.com/notofonts/latin-greek-cyrillic) | [Releases](https://github.com/notofonts/latin-greek-cyrillic/releases) | 选择 `NotoSerif-*` 发布中的字体包；该仓库最新发布也可能是 Noto Sans |
-| Noto CJK | [notofonts/noto-cjk](https://github.com/notofonts/noto-cjk) | [Sans 下载说明](https://github.com/notofonts/noto-cjk/blob/main/Sans/README.md) / [Serif 下载说明](https://github.com/notofonts/noto-cjk/blob/main/Serif/README.md) / [Releases](https://github.com/notofonts/noto-cjk/releases) | Sans 和 Serif 都要装；推荐多地区 TTC，覆盖 SC、TC、JP、KR。使用该项目的 CJK 命名字体 |
-| 遍黑体 Plangothic | [Plangothic_Project](https://github.com/Fitzgerald-Porthmouth-Koenigsegg/Plangothic_Project) | [Releases](https://github.com/Fitzgerald-Porthmouth-Koenigsegg/Plangothic_Project/releases) | 安装 `PlangothicP1-Regular.ttf` 和 `PlangothicP2-Regular.ttf`，或包含二者的 Static 包 |
-| 字雲 Jigmo | [官方主页与下载](https://kamichikoichi.github.io/jigmo/) | [官方主页内的 ZIP 下载](https://kamichikoichi.github.io/jigmo/) | 安装压缩包中的 Jigmo、Jigmo2、Jigmo3 三个字体 |
-| Noto Color Emoji | [googlefonts/noto-emoji](https://github.com/googlefonts/noto-emoji) | [NotoColorEmoji.ttf（v2.051）](https://github.com/googlefonts/noto-emoji/blob/v2.051/fonts/NotoColorEmoji.ttf) / [直接下载](https://raw.githubusercontent.com/googlefonts/noto-emoji/v2.051/fonts/NotoColorEmoji.ttf) | 提供明确包含 `NotoColorEmoji.ttf` 的版本链接；配置不使用黑白 `Noto Emoji` 或 3D Emoji |
-| 霞鹜文楷 GB | [lxgw/LxgwWenKaiGB](https://github.com/lxgw/LxgwWenKaiGB) | [Releases](https://github.com/lxgw/LxgwWenKaiGB/releases) | 安装 `LXGWWenKaiGB-*.ttf`；普通文楷、TC、Mono 版本不能代替这条 GB 字体规则 |
-| 霞鹜臻楷 | [lxgw/LxgwZhenKai](https://github.com/lxgw/LxgwZhenKai) | [Releases](https://github.com/lxgw/LxgwZhenKai/releases) / [GB Regular 直接下载](https://github.com/lxgw/LxgwZhenKai/releases/latest/download/LXGWZhenKaiGB-Regular.ttf) | 安装 `LXGWZhenKaiGB-Regular.ttf` |
-
-创建用户字体目录，把解压后的字体文件放进去，再刷新缓存：
-
-```bash
-mkdir -p "${XDG_DATA_HOME:-$HOME/.local/share}/fonts"
-# 将下载的 .ttf / .otf / .ttc 文件复制到上面的目录，也可以按项目分子目录。
-fc-cache -f
-```
-
-## 安装 fonts.conf
-
-先安装字体，再执行下面的命令。已有配置会备份为带时间戳的文件。新文件先下载到临时位置，成功后才替换当前配置。
+自动下载 `fonts.conf` 并部署至用户目录，若存在旧配置会自动备份（附带时间戳后缀）：
 
 ```bash
 (
@@ -120,29 +92,66 @@ fc-cache -f
 )
 ```
 
-也可以下载仓库中的 `fonts.conf`，手动备份后放到 `~/.config/fontconfig/fonts.conf`；自定义 XDG 路径时使用 `$XDG_CONFIG_HOME/fontconfig/fonts.conf`。
+---
 
-重新打开浏览器、编辑器等应用，使它们读取新配置。KDE 中显式设置的界面字体仍由 KDE 字体设置控制；Fontconfig 负责匹配与回退。
+### 方案 B：手动下载与安装（通用 Linux 发行版）
 
-## 检查实际匹配
+下载 Releases 中的字体成品文件（`.ttf` / `.otf` / `.ttc`），放进用户字体目录即可：
 
-命令统一使用 `:family=...`，避免直接输入带连字符的字体名称时产生解析歧义。
+| 字体 | 项目地址 | 安装建议 |
+| :--- | :--- | :--- |
+| **Inter** | [rsms/inter](https://github.com/rsms/inter/releases) | 下载解压安装桌面字体包 |
+| **更纱黑体** | [be5invis/Sarasa-Gothic](https://github.com/be5invis/Sarasa-Gothic/releases) | 推荐完整 TTC 包；至少包含 Gothic SC 与 Term SC |
+| **Noto Serif** | [notofonts/latin-greek-cyrillic](https://github.com/notofonts/latin-greek-cyrillic/releases) | 下载 `NotoSerif-*` 字体发布包 |
+| **Noto CJK** | [notofonts/noto-cjk](https://github.com/notofonts/noto-cjk/releases) | Sans 和 Serif 均需安装；推荐包含多地区的 TTC 包 |
+| **遍黑体** | [Plangothic_Project](https://github.com/Fitzgerald-Porthmouth-Koenigsegg/Plangothic_Project/releases) | 安装 `PlangothicP1-Regular` 与 `PlangothicP2-Regular` |
+| **字雲 Jigmo** | [kamichikoichi/jigmo](https://kamichikoichi.github.io/jigmo/) | 下载 ZIP 并解压包含的 Jigmo 1/2/3 字体 |
+| **Noto Color Emoji** | [googlefonts/noto-emoji](https://raw.githubusercontent.com/googlefonts/noto-emoji/v2.051/fonts/NotoColorEmoji.ttf) | 下载彩色 Emoji 文件 `NotoColorEmoji.ttf` |
+| **霞鹜文楷 GB** *(可选)* | [lxgw/LxgwWenKaiGB](https://github.com/lxgw/LxgwWenKaiGB/releases) | 安装 `LXGWWenKaiGB-*.ttf` |
+| **霞鹜臻楷** *(可选)* | [lxgw/LxgwZhenKai](https://github.com/lxgw/LxgwZhenKai/releases/latest/download/LXGWZhenKaiGB-Regular.ttf) | 获取 `LXGWZhenKaiGB-Regular.ttf` |
+
+解压并放置字体文件到目录后刷新缓存：
 
 ```bash
-fc-conflist
-fc-match ':family=sans-serif:lang=zh-cn:charset=0041'     # Inter，字符 A
-fc-match ':family=sans-serif:lang=zh-cn:charset=4e2d'     # Sarasa Gothic SC，字符 中
-fc-match ':family=system-ui:lang=zh-cn:charset=4e2d'      # Sarasa Gothic SC
-fc-match ':family=serif:lang=zh-cn:charset=4e2d'          # Noto Serif CJK SC
-fc-match ':family=monospace:lang=zh-cn:charset=4e2d'      # Sarasa Term SC
-fc-match ':family=sans-serif:charset=20000'              # Plangothic P1
-fc-match ':family=serif:charset=20000'                   # Jigmo 系列
-fc-match ':family=sans-serif:charset=31350'              # Plangothic P2
-fc-match ':family=serif:charset=31350'                   # Jigmo 系列
-fc-match ':family=sans-serif:charset=1f600'              # Noto Color Emoji，字符 😀
-fc-match ':family=LXGW WenKai GB:weight=bold'            # LXGW ZhenKai GB，Regular
+mkdir -p "${XDG_DATA_HOME:-$HOME/.local/share}/fonts"
+# 将下载的字体放入上述目录，然后刷新缓存：
+fc-cache -f
 ```
 
-在 Fontconfig 2.18.3 上验证过默认字体、指定字体、不同语言标签、生僻字和粗体规则。以上是 Fontconfig 的匹配结果；应用自行加载的网页字体及自身渲染策略也会影响最终显示。
+最后将本仓库的 [fonts.conf](fonts.conf) 保存到 `~/.config/fontconfig/fonts.conf`。
 
-参考：[Fontconfig 官方文档](https://fontconfig.pages.freedesktop.org/fontconfig/fontconfig-user.html) · [yay 官方手册](https://github.com/Jguer/yay/blob/next/doc/yay.8)。字体项目、包名及下载入口见上表。
+> **注意**：
+> - 重启浏览器和终端等应用即可生效。
+> - KDE Plasma 等桌面若在“系统设置 -> 字体”中强制指定了特定界面字体，界面优先采用该设置；Fontconfig 依然接管网页、文档和字符回退流程。
+
+---
+
+## 规则验证
+
+运行以下测试命令，确认系统命中与回退是否符合预期：
+
+```bash
+# 1. 西文与中文匹配
+fc-match ':family=sans-serif:lang=zh-cn:charset=0041'     # 命中 Inter（字符 A）
+fc-match ':family=sans-serif:lang=zh-cn:charset=4e2d'     # 命中 Sarasa Gothic SC（汉字“中”）
+fc-match ':family=system-ui:lang=zh-cn:charset=4e2d'      # 命中 Sarasa Gothic SC
+fc-match ':family=serif:lang=zh-cn:charset=4e2d'          # 命中 Noto Serif CJK SC
+fc-match ':family=monospace:lang=zh-cn:charset=4e2d'      # 命中 Sarasa Term SC
+
+# 2. 生僻字扩展区回退
+fc-match ':family=sans-serif:charset=20000'              # 命中 Plangothic P1
+fc-match ':family=serif:charset=20000'                   # 命中 Jigmo 系列
+fc-match ':family=sans-serif:charset=31350'              # 命中 Plangothic P2
+fc-match ':family=serif:charset=31350'                   # 命中 Jigmo 系列
+
+# 3. Emoji 与文楷粗体重定向
+fc-match ':family=sans-serif:charset=1f600'              # 命中 Noto Color Emoji (😀)
+fc-match ':family=LXGW WenKai GB:weight=bold'            # 粗体命中 LXGW ZhenKai GB Regular
+```
+
+---
+
+## 参考
+
+- [Fontconfig 官方文档](https://fontconfig.pages.freedesktop.org/fontconfig/fontconfig-user.html)
+- [yay 手册](https://github.com/Jguer/yay/blob/next/doc/yay.8)
